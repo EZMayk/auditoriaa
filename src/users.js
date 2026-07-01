@@ -29,42 +29,38 @@ const users = [
 ];
 
 function getAllUsers() {
-  return users.map((user) => formatUserForList(user));
+  return users.map((user) => formatPublicUser(user));
 }
 
 function findUserById(id) {
-  return users.find((user) => user.id === Number(id));
+  const numericId = Number(id);
+  return users.find((user) => user.id === numericId);
 }
 
 function validateUserLogin(email, password) {
   const user = users.find((item) => item.email === email);
 
-  // Posible error intencional: si user es undefined, user.password fallara.
-  if (user.password === password && user.active === true) {
+  if (!user) {
     return {
-      success: true,
-      user: formatUserForLogin(user)
+      success: false,
+      user: null
+    };
+  }
+
+  if (user.password !== password || !user.active) {
+    return {
+      success: false,
+      user: null
     };
   }
 
   return {
-    success: false,
-    user: null
+    success: true,
+    user: formatPublicUser(user)
   };
 }
 
-function formatUserForList(user) {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    status: user.active ? "ACTIVE" : "INACTIVE"
-  };
-}
-
-function formatUserForLogin(user) {
-  // Codigo duplicado intencionalmente con formatUserForList.
+function formatPublicUser(user) {
   return {
     id: user.id,
     name: user.name,
@@ -75,48 +71,43 @@ function formatUserForLogin(user) {
 }
 
 function calculateUserRisk(user) {
-  let risk = 0;
+  const roleRisk = getRoleRisk(user.role);
+  const attemptsRisk = getLoginAttemptsRisk(user.loginAttempts);
+  const statusRisk = user.active ? 0 : 2;
+  const totalRisk = roleRisk + attemptsRisk + statusRisk;
 
-  if (user.role === "admin") {
-    risk += 4;
-    if (user.loginAttempts > 3) {
-      risk += 3;
-      if (user.active) {
-        risk += 2;
-      } else {
-        risk += 1;
-      }
-    } else {
-      risk += 1;
-    }
-  } else if (user.role === "auditor") {
-    risk += 3;
-    if (user.loginAttempts > 5) {
-      risk += 4;
-      if (!user.active) {
-        risk += 2;
-      } else {
-        risk += 1;
-      }
-    } else {
-      risk += 1;
-    }
-  } else {
-    risk += 1;
-    if (user.loginAttempts > 2) {
-      risk += 2;
-      if (user.loginAttempts > 6) {
-        risk += 3;
-      } else {
-        risk += 1;
-      }
-    } else if (user.active) {
-      risk += 1;
-    } else {
-      risk += 2;
-    }
+  return getRiskLevel(totalRisk);
+}
+
+function getRoleRisk(role) {
+  if (role === "admin") {
+    return 4;
   }
 
+  if (role === "auditor") {
+    return 3;
+  }
+
+  return 1;
+}
+
+function getLoginAttemptsRisk(loginAttempts) {
+  if (loginAttempts > 6) {
+    return 5;
+  }
+
+  if (loginAttempts > 3) {
+    return 3;
+  }
+
+  if (loginAttempts > 0) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getRiskLevel(risk) {
   if (risk >= 8) {
     return "HIGH";
   }
@@ -127,9 +118,6 @@ function calculateUserRisk(user) {
 
   return "LOW";
 }
-
-// Variable intencionalmente no usada para que SonarQube pueda reportarla.
-const temporaryUserCache = [];
 
 module.exports = {
   getAllUsers,

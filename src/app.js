@@ -1,14 +1,13 @@
+require("dotenv").config();
+
 const express = require("express");
 const { getAllUsers, findUserById, validateUserLogin } = require("./users");
 const database = require("./database");
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
-
-// Variable intencionalmente no usada para que SonarQube pueda reportarla.
-const oldApiVersion = "v0";
 
 app.get("/", (req, res) => {
   res.json({
@@ -25,28 +24,35 @@ app.get("/users", (req, res) => {
 app.get("/users/:id", (req, res) => {
   const user = findUserById(req.params.id);
 
-  // Posible error intencional: si el usuario no existe, user sera undefined.
-  res.json({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  });
+  if (!user) {
+    return res.status(404).json({
+      message: "Usuario no encontrado"
+    });
+  }
+
+  res.json(user);
 });
 
 app.post("/login", (req, res) => {
-  const loginResult = validateUserLogin(req.body.email, req.body.password);
+  const { email, password } = req.body;
 
-  if (loginResult.success) {
-    res.json({
-      message: "Login correcto",
-      user: loginResult.user
+  if (!email || !password) {
+    return res.status(400).json({
+      message: "Email y password son obligatorios"
     });
-    return;
   }
 
-  res.status(401).json({
-    message: "Credenciales invalidas"
+  const loginResult = validateUserLogin(email, password);
+
+  if (!loginResult.success) {
+    return res.status(401).json({
+      message: "Credenciales invalidas"
+    });
+  }
+
+  res.json({
+    message: "Login correcto",
+    user: loginResult.user
   });
 });
 
