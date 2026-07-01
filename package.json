@@ -1,0 +1,21 @@
+{
+  "name": "sonarqube-audit-example-api",
+  "version": "1.0.0",
+  "description": "API basica en Node.js y Express para una auditoria academica con SonarQube.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node src/app.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "sonarqube",
+    "auditoria"
+  ],
+  "author": "Ejemplo academico",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
